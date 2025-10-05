@@ -1,0 +1,55 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ====== GLOBAL STYLES ====== */
+
+html,
+body {
+  @apply bg-gray-50 text-gray-900 font-sans antialiased;
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+/* Headings */
+h1, h2, h3, h4, h5, h6 {
+  @apply font-semibold text-gray-800;
+}
+
+/* Buttons */
+button {
+  @apply px-4 py-2 rounded-lg font-medium transition-all duration-200 ease-in-out;
+}
+
+/* Default Button States */
+button:hover {
+  @apply opacity-90;
+}
+
+/* Input Fields */
+input, textarea, select {
+  @apply border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-indigo-400;
+}
+
+/* Cards / Containers */
+.card {
+  @apply bg-white shadow-sm rounded-2xl p-5 border border-gray-100;
+}
+
+/* Navbar / Bottom Navigation */
+.navbar {
+  @apply flex justify-around items-center bg-white py-3 shadow-md fixed bottom-0 w-full;
+}
+
+/* Utility Classes */
+.text-gradient {
+  background: linear-gradient(to right, #4f46e5, #3b82f6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Smooth transitions for everything */
+* {
+  @apply transition-all duration-200;
+}
