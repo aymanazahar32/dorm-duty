@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 import TaskCard from "../components/TaskCard";
 import { useAuth } from "../context/AuthContext";
-import { createTask, deleteTask, fetchTasks, updateTask } from "../utils/api";
+import { createTask, deleteTask, fetchTasks, updateTask, fetchLeaderboard } from "../utils/api";
 
 const emptyForm = {
   taskName: "",
@@ -30,6 +30,8 @@ const Tasks = () => {
   const [error, setError] = useState(null);
   const [form, setForm] = useState(emptyForm);
   const [filter, setFilter] = useState("all");
+  const [roommates, setRoommates] = useState([]);
+  const [loadingRoommates, setLoadingRoommates] = useState(false);
 
   useEffect(() => {
     if (!user?.id || !user?.roomId) {
@@ -73,17 +75,60 @@ const Tasks = () => {
     };
   }, [user?.id, user?.roomId]);
 
+  // Load roommates for the dropdown
+  useEffect(() => {
+    if (!user?.id || !user?.roomId) {
+      setRoommates([]);
+      return;
+    }
+
+    let ignore = false;
+
+    async function loadRoommates() {
+      setLoadingRoommates(true);
+      try {
+        const response = await fetchLeaderboard({ 
+          userId: user.id, 
+          roomId: user.roomId, 
+          limit: 50 
+        });
+        
+        if (!ignore) {
+          setRoommates(response.data ?? []);
+        }
+      } catch (err) {
+        console.error("Failed to load roommates:", err);
+        if (!ignore) {
+          setRoommates([]);
+        }
+      } finally {
+        if (!ignore) {
+          setLoadingRoommates(false);
+        }
+      }
+    }
+
+    loadRoommates();
+
+    return () => {
+      ignore = true;
+    };
+  }, [user?.id, user?.roomId]);
+
   const normalizedTasks = useMemo(
     () =>
-      tasks.map((task) => ({
-        id: task.id,
-        title: task.task_name,
-        completed: task.completed,
-        dueDate: task.due_date ? toISODate(task.due_date) : "",
-        assignedTo: task.user_id,
-        auraAwarded: task.aura_awarded ?? 0,
-      })),
-    [tasks]
+      tasks.map((task) => {
+        const assignedRoommate = roommates.find(r => r.id === task.user_id);
+        return {
+          id: task.id,
+          title: task.task_name,
+          completed: task.completed,
+          dueDate: task.due_date ? toISODate(task.due_date) : "",
+          assignedTo: assignedRoommate?.name || assignedRoommate?.email || task.user_id || "Unassigned",
+          auraAwarded: task.aura_awarded ?? 0,
+        };
+      }),
+    [tasks, roommates]
   );
 
   const filteredTasks = useMemo(() => {
@@ -273,14 +318,26 @@ const Tasks = () => {
             onChange={handleFormChange}
             className="rounded-xl border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-400"
           />
-          <input
-            type="text"
+          <select
             name="assignedUserId"
             value={form.assignedUserId}
             onChange={handleFormChange}
-            placeholder="Assignee user ID (optional)"
-            className="rounded-xl border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-400"
-          />
+            className="rounded-xl border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
+            disabled={loadingRoommates}
+          >
+            <option value="">
+              {loadingRoommates ? "Loading roommates..." : "Assign to... (optional)"}
+            </option>
+            {roommates.length === 0 && !loadingRoommates ? (
+              <option value="" disabled>No roommates found</option>
+            ) : (
+              roommates.map((roommate) => (
+                <option key={roommate.id} value={roommate.id}>
+                  {roommate.name || roommate.email || `User ${roommate.id}`}
+                </option>
+              ))
+            )}
+          </select>
           <button
             type="submit"
             disabled={saving}
