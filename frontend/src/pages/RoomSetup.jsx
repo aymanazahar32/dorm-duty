@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
-import { useNavigate } from "react-router-dom";
-import { Home, Plus, Users, Copy, Check, AlertCircle } from "lucide-react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { Home, Plus, Users, Copy, Check, AlertCircle, Link2 } from "lucide-react";
 import { supabase } from "../utils/supabaseClient";
 
 /**
@@ -21,8 +21,20 @@ export default function RoomSetup() {
   const [success, setSuccess] = useState(null);
   const [copiedUserId, setCopiedUserId] = useState(false);
   const [copiedRoomId, setCopiedRoomId] = useState(false);
+  const [copiedInviteLink, setCopiedInviteLink] = useState(false);
+  const [createdRoomId, setCreatedRoomId] = useState(null);
+  const [searchParams] = useSearchParams();
 
   const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:3001";
+
+  // Check for invitation link parameter
+  useEffect(() => {
+    const inviteCode = searchParams.get('invite');
+    if (inviteCode && !user?.roomId) {
+      setRoomCode(inviteCode);
+      setMode('join');
+    }
+  }, [searchParams, user?.roomId]);
 
   // Redirect if user already has a room
   useEffect(() => {
@@ -31,6 +43,11 @@ export default function RoomSetup() {
       setMode("hasRoom");
     }
   }, [user?.roomId]);
+
+  const generateInviteLink = (roomId) => {
+    const baseUrl = window.location.origin;
+    return `${baseUrl}/room-setup?invite=${roomId}`;
+  };
 
   const handleCreateRoom = async (e) => {
     e.preventDefault();
@@ -110,10 +127,9 @@ export default function RoomSetup() {
       // Update user's roomId
       await updateUserRoom(newRoomId);
 
-      setSuccess(`Room "${roomName}" created! Room ID: ${newRoomId}`);
-      
-      // Redirect to home after 2 seconds
-      setTimeout(() => navigate("/home"), 2000);
+      // Store the created room ID to show invitation link
+      setCreatedRoomId(newRoomId);
+      setSuccess(`Room "${roomName}" created successfully!`);
     } catch (err) {
       console.error("❌ Error in handleCreateRoom:", err);
       setError(err.message || "Failed to create room");
@@ -200,9 +216,12 @@ export default function RoomSetup() {
     if (type === "userId") {
       setCopiedUserId(true);
       setTimeout(() => setCopiedUserId(false), 2000);
-    } else {
+    } else if (type === "roomId") {
       setCopiedRoomId(true);
       setTimeout(() => setCopiedRoomId(false), 2000);
+    } else if (type === "inviteLink") {
+      setCopiedInviteLink(true);
+      setTimeout(() => setCopiedInviteLink(false), 2000);
     }
   };
 
@@ -273,6 +292,31 @@ export default function RoomSetup() {
               </div>
             </div>
 
+            {/* Invitation Link Card */}
+            <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
+              <label className="text-sm font-semibold text-emerald-900 mb-2 block">
+                Invitation Link
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={generateInviteLink(user.roomId)}
+                  readOnly
+                  className="flex-1 bg-white border border-emerald-300 rounded px-3 py-2 text-sm text-gray-700 truncate"
+                />
+                <button
+                  onClick={() => copyToClipboard(generateInviteLink(user.roomId), "inviteLink")}
+                  className="p-2 bg-emerald-600 text-white rounded hover:bg-emerald-700 transition"
+                  title="Copy Invitation Link"
+                >
+                  {copiedInviteLink ? <Check className="w-5 h-5" /> : <Link2 className="w-5 h-5" />}
+                </button>
+              </div>
+              <p className="text-xs text-emerald-700 mt-2">
+                Share this link with roommates - they can click it to join automatically!
+              </p>
+            </div>
+
             {/* Email */}
             <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
               <label className="text-sm font-semibold text-gray-900 mb-2 block">
@@ -300,7 +344,7 @@ export default function RoomSetup() {
           </div>
 
           <p className="text-sm text-gray-500 text-center mt-6">
-            💡 Share your Room ID with roommates so they can join!
+            💡 Share the invitation link above with roommates for easy one-click joining!
           </p>
         </div>
       </div>
@@ -369,6 +413,99 @@ export default function RoomSetup() {
 
   // Create room form
   if (mode === "create") {
+    // Show success screen with invitation link after room is created
+    if (createdRoomId) {
+      const inviteLink = generateInviteLink(createdRoomId);
+      
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-lg">
+            <div className="text-center mb-8">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
+                <Check className="w-8 h-8 text-green-600" />
+              </div>
+              <h1 className="text-3xl font-bold text-gray-800 mb-2">
+                Room Created Successfully! 🎉
+              </h1>
+              <p className="text-gray-600">
+                Share the details below with your roommates
+              </p>
+            </div>
+
+            <div className="space-y-4 mb-6">
+              {/* Room ID Card */}
+              <div className="bg-purple-50 border-2 border-purple-200 rounded-lg p-4">
+                <label className="text-sm font-semibold text-purple-900 mb-2 block">
+                  Room ID
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={createdRoomId}
+                    readOnly
+                    className="flex-1 bg-white border border-purple-300 rounded px-3 py-2 text-sm font-mono text-gray-700"
+                  />
+                  <button
+                    onClick={() => copyToClipboard(createdRoomId, "roomId")}
+                    className="p-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition"
+                    title="Copy Room ID"
+                  >
+                    {copiedRoomId ? <Check className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Invitation Link Card - Highlighted */}
+              <div className="bg-gradient-to-r from-emerald-50 to-green-50 border-2 border-emerald-300 rounded-lg p-4 shadow-md">
+                <div className="flex items-center gap-2 mb-2">
+                  <Link2 className="w-5 h-5 text-emerald-600" />
+                  <label className="text-sm font-bold text-emerald-900">
+                    Invitation Link (Recommended)
+                  </label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={inviteLink}
+                    readOnly
+                    className="flex-1 bg-white border border-emerald-300 rounded px-3 py-2 text-sm text-gray-700"
+                  />
+                  <button
+                    onClick={() => copyToClipboard(inviteLink, "inviteLink")}
+                    className="p-2 bg-emerald-600 text-white rounded hover:bg-emerald-700 transition flex items-center gap-1 px-4"
+                    title="Copy Invitation Link"
+                  >
+                    {copiedInviteLink ? (
+                      <>
+                        <Check className="w-5 h-5" />
+                        <span className="text-sm font-medium">Copied!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-5 h-5" />
+                        <span className="text-sm font-medium">Copy</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+                <p className="text-xs text-emerald-700 mt-2 font-medium">
+                  ✨ Send this link to roommates - they can join with just one click!
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={goToHome}
+              className="w-full py-3 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition flex items-center justify-center gap-2"
+            >
+              <Home className="w-5 h-5" />
+              Go to Dashboard
+            </button>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100 flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md">
@@ -395,13 +532,6 @@ export default function RoomSetup() {
             <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
               <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
               <div className="text-sm text-red-800">{error}</div>
-            </div>
-          )}
-
-          {success && (
-            <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg flex items-start gap-3">
-              <Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-              <div className="text-sm text-green-800">{success}</div>
             </div>
           )}
 
@@ -466,7 +596,9 @@ export default function RoomSetup() {
               Join a Room
             </h1>
             <p className="text-gray-600">
-              Enter the room code from your roommate
+              {searchParams.get('invite') 
+                ? "Using invitation link - click Join to continue!"
+                : "Enter the room code from your roommate"}
             </p>
           </div>
 
@@ -498,7 +630,9 @@ export default function RoomSetup() {
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent font-mono"
               />
               <p className="text-xs text-gray-500 mt-2">
-                Ask your roommate for the Room ID they received when creating the room
+                {searchParams.get('invite') 
+                  ? "Room code auto-filled from invitation link"
+                  : "Ask your roommate for the Room ID or invitation link"}
               </p>
             </div>
 

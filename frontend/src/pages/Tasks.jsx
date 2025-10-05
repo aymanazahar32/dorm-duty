@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 import TaskCard from "../components/TaskCard";
 import { useAuth } from "../context/AuthContext";
-import { createTask, deleteTask, fetchTasks, updateTask, fetchLeaderboard } from "../utils/api";
+import { createTask, deleteTask, fetchTasks, updateTask, fetchLeaderboard, updateUserAura } from "../utils/api";
 
 const emptyForm = {
   taskName: "",
@@ -17,9 +17,36 @@ const emptyForm = {
 
 const toISODate = (value) => {
   if (!value) return "";
-  const date = new Date(value);
+  
+  // If already in YYYY-MM-DD format, return as is
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return value;
+  }
+  
+  // Parse date in local timezone
+  let date;
+  if (typeof value === 'string') {
+    const dateParts = value.split('-');
+    if (dateParts.length === 3) {
+      date = new Date(
+        parseInt(dateParts[0]),
+        parseInt(dateParts[1]) - 1,
+        parseInt(dateParts[2])
+      );
+    } else {
+      date = new Date(value);
+    }
+  } else {
+    date = new Date(value);
+  }
+  
   if (Number.isNaN(date.getTime())) return "";
-  return date.toISOString().split("T")[0];
+  
+  // Format as YYYY-MM-DD in local timezone
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 };
 
 const Tasks = () => {
@@ -28,6 +55,7 @@ const Tasks = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
   const [form, setForm] = useState(emptyForm);
   const [filter, setFilter] = useState("all");
   const [roommates, setRoommates] = useState([]);
@@ -121,6 +149,7 @@ const Tasks = () => {
         const assignedRoommate = roommates.find(r => r.id === task.user_id);
         return {
           id: task.id,
+          userId: task.user_id, // Keep the actual user ID
           title: task.task_name,
           completed: task.completed,
           dueDate: task.due_date ? toISODate(task.due_date) : "",
@@ -132,11 +161,18 @@ const Tasks = () => {
   );
 
   const filteredTasks = useMemo(() => {
-    if (filter === "all") return normalizedTasks;
-    if (filter === "completed") return normalizedTasks.filter((task) => task.completed);
-    if (filter === "pending") return normalizedTasks.filter((task) => !task.completed);
-    return normalizedTasks;
-  }, [filter, normalizedTasks]);
+    let filtered;
+    if (filter === "all") filtered = normalizedTasks;
+    else if (filter === "pending") filtered = normalizedTasks.filter((t) => !t.completed);
+    else if (filter === "completed") filtered = normalizedTasks.filter((t) => t.completed);
+    else filtered = normalizedTasks;
+    
+    // Sort: incomplete tasks first, then completed tasks (so completed moves down)
+    return filtered.sort((a, b) => {
+      if (a.completed === b.completed) return 0;
+      return a.completed ? 1 : -1; // incomplete (false) comes before completed (true)
+    });
+  }, [normalizedTasks, filter]);
 
   const handleFormChange = (event) => {
     const { name, value } = event.target;
@@ -180,18 +216,149 @@ const Tasks = () => {
     setTasks((prev) => prev.map((task) => (task.id === taskId ? updater(task) : task)));
   };
 
+  const calculateAuraPoints = (task, isCompleting) => {
+    if (!isCompleting) return 0; // No points for uncompleting a task
+
+    const now = new Date();
+    now.setHours(0, 0, 0, 0); // Reset to start of day for fair comparison
+    
+    let dueDate = null;
+    if (task.dueDate) {
+      // Parse date string as local date, not UTC
+      const dateParts = task.dueDate.split('-');
+      if (dateParts.length === 3) {
+        dueDate = new Date(
+          parseInt(dateParts[0]), // year
+          parseInt(dateParts[1]) - 1, // month (0-indexed)
+          parseInt(dateParts[2]) // day
+        );
+      } else {
+        dueDate = new Date(task.dueDate);
+      }
+      dueDate.setHours(0, 0, 0, 0); // Reset to start of day
+    }
+
+    console.log(`📅 Calculating points for task: "${task.title}"`);
+    console.log(`   Task due date: ${task.dueDate}`);
+    console.log(`   Due date (parsed): ${dueDate?.toISOString() || 'No due date'}`);
+    console.log(`   Current time (start of day): ${now.toISOString()}`);
+
+    // If no due date, give a base 50 points
+    if (!dueDate) {
+      console.log(`   ✅ No due date → 50 points`);
+      return 50;
+    }
+
+    // Calculate days difference (using start of day for both dates)
+    const daysDiff = Math.ceil((dueDate - now) / (1000 * 60 * 60 * 24));
+    console.log(`   Days difference: ${daysDiff}`);
+
+    // Completed on time or early
+    if (daysDiff > 0) {
+      // More points for completing early
+      if (daysDiff >= 3) {
+        console.log(`   ✅ ${daysDiff} days early → 100 points`);
+        return 100;
+      }
+      if (daysDiff >= 1) {
+        console.log(`   ✅ ${daysDiff} days early → 80 points`);
+        return 80;
+      }
+    }
+    
+    if (daysDiff === 0) {
+      console.log(`   ✅ Due today (on time) → 60 points`);
+      return 60;
+    }
+    
+    // Task is overdue
+    console.log(`   ⚠️ OVERDUE by ${Math.abs(daysDiff)} days → -10 points`);
+    return -10;
+  };
+
   const handleToggleCompleted = async (task) => {
-    if (!user?.id) return;
+    if (!user?.id || !user?.roomId) return;
 
     const snapshot = tasks;
+    const isCompleting = !task.completed;
     mutateTask(task.id, (prev) => ({ ...prev, completed: !prev.completed }));
 
     try {
+      // Calculate aura points change
+      let auraChange = 0;
+      
+      if (isCompleting) {
+        // Awarding points for completing
+        auraChange = calculateAuraPoints(task, true);
+      } else {
+        // Reverting a completed task back to pending
+        // We need to reverse whatever was awarded/deducted
+        // If positive points were awarded, we deduct them (negative change)
+        // If negative points were applied (penalty), we remove the penalty (positive change)
+        const previousAward = task.auraAwarded || 0;
+        auraChange = -previousAward; // This correctly reverses both positive and negative awards
+      }
+
+      // Update task completion status and store aura points awarded
+      const taskUpdates = { completed: !task.completed };
+      
+      // If completing, store the aura points earned in the task
+      if (isCompleting) {
+        taskUpdates.auraAwarded = auraChange;
+      }
+      
       const updated = await updateTask({
         taskId: task.id,
         userId: user.id,
-        updates: { completed: !task.completed },
+        updates: taskUpdates,
       });
+
+      // Update user's aura points
+      if (auraChange !== 0) {
+        try {
+          console.log(`🎯 Awarding ${auraChange} points to user:`, task.userId, `for task:`, task.title);
+          
+          await updateUserAura({
+            userId: task.userId, // Award to the assigned user (use actual ID)
+            roomId: user.roomId,
+            auraChange,
+            reason: isCompleting
+              ? (auraChange > 0 
+                  ? `Completed task: ${task.title}` 
+                  : `Completed overdue task: ${task.title}`)
+              : `Reverted task to pending: ${task.title}`,
+          });
+
+          console.log(`✅ Aura points successfully awarded to:`, task.userId);
+
+          // Refresh roommates/leaderboard to show updated aura points
+          const response = await fetchLeaderboard({ 
+            userId: user.id, 
+            roomId: user.roomId, 
+            limit: 50 
+          });
+          setRoommates(response.data ?? []);
+
+          // Show success message with points
+          if (isCompleting) {
+            if (auraChange > 0) {
+              setSuccess(`Task completed! +${auraChange} aura points earned! 🎉`);
+            } else {
+              setError(`Task completed but was overdue. ${auraChange} aura points.`);
+            }
+          } else {
+            setError(`Task marked as pending. ${auraChange} aura points removed.`);
+          }
+          setTimeout(() => {
+            setSuccess(null);
+            setError(null);
+          }, 3000);
+        } catch (auraErr) {
+          console.error("❌ Failed to update aura for user:", task.userId, auraErr);
+          setError(`Task completed but failed to award points: ${auraErr.message}`);
+          setTimeout(() => setError(null), 5000);
+        }
+      }
 
       setTasks((prev) => prev.map((entry) => (entry.id === updated.id ? updated : entry)));
     } catch (err) {
@@ -354,7 +521,13 @@ const Tasks = () => {
         </div>
       )}
 
-      <section className="space-y-4">
+      {success && (
+        <div className="mb-6 rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-600 font-medium">
+          {success}
+        </div>
+      )}
+
+      <section>
         {loading ? (
           <div className="flex items-center justify-center rounded-3xl border border-gray-100 bg-white/80 p-12 text-gray-500 shadow-md">
             <Loader2 className="h-5 w-5 animate-spin" />
@@ -365,20 +538,22 @@ const Tasks = () => {
             No tasks yet. Create one to get started!
           </div>
         ) : (
-          filteredTasks.map((task) => (
-            <TaskCard
-              key={task.id}
-              title={task.title}
-              assignedTo={task.assignedTo || "Unassigned"}
-              dueDate={task.dueDate}
-              completed={task.completed}
-              auraAwarded={task.auraAwarded}
-              onToggle={() => handleToggleCompleted(task)}
-              onSnooze={task.dueDate ? () => handleSnooze(task) : undefined}
-              onDelete={() => handleDeleteTask(task.id)}
-              onChangePriority={undefined}
-            />
-          ))
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {filteredTasks.map((task) => (
+              <TaskCard
+                key={task.id}
+                title={task.title}
+                assignedTo={task.assignedTo || "Unassigned"}
+                dueDate={task.dueDate}
+                completed={task.completed}
+                auraAwarded={task.auraAwarded}
+                onToggle={() => handleToggleCompleted(task)}
+                onSnooze={task.dueDate ? () => handleSnooze(task) : undefined}
+                onDelete={() => handleDeleteTask(task.id)}
+                onChangePriority={undefined}
+              />
+            ))}
+          </div>
         )}
       </section>
     </div>

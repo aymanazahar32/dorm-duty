@@ -116,3 +116,12 @@ export async function updateLaundry({ userId, roomId, updates }) {
 
   return data;
 }
+
+export async function updateUserAura({ userId, roomId, auraChange, reason }) {
+  const { data } = await apiFetch("/api/user/aura", {
+    method: "PATCH",
+    body: { userId, roomId, auraChange, reason },
+  });
+
+  return data;
+}

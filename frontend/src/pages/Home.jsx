@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import RoommateCard from "../components/RoommateCard";
 import PieChart from "../components/PieChart";
 import { useAuth } from "../context/AuthContext";
-import { fetchLeaderboard, fetchTasks, updateTask } from "../utils/api";
+import { fetchLeaderboard, fetchTasks, updateTask, updateUserAura } from "../utils/api";
 
 const CHART_COLORS = ["#10B981", "#F59E0B", "#EF4444"];
 
@@ -129,16 +129,90 @@ const Home = () => {
 
   const dormMaster = leaders[0];
 
+  const calculateAuraPoints = (task, isCompleting) => {
+    if (!isCompleting) return 0;
+
+    const now = new Date();
+    now.setHours(0, 0, 0, 0); // Reset to start of day for fair comparison
+    
+    let dueDate = null;
+    if (task.dueDate) {
+      // Parse date string as local date, not UTC
+      const dateParts = task.dueDate.split('-');
+      if (dateParts.length === 3) {
+        dueDate = new Date(
+          parseInt(dateParts[0]), // year
+          parseInt(dateParts[1]) - 1, // month (0-indexed)
+          parseInt(dateParts[2]) // day
+        );
+      } else {
+        dueDate = new Date(task.dueDate);
+      }
+      dueDate.setHours(0, 0, 0, 0); // Reset to start of day
+    }
+
+    console.log(`📅 Calculating points for task: "${task.name}"`);
+    console.log(`   Task due date: ${task.dueDate}`);
+    console.log(`   Due date (parsed): ${dueDate?.toISOString() || 'No due date'}`);
+    console.log(`   Current time (start of day): ${now.toISOString()}`);
+
+    if (!dueDate) {
+      console.log(`   ✅ No due date → 50 points`);
+      return 50;
+    }
+
+    const daysDiff = Math.ceil((dueDate - now) / (1000 * 60 * 60 * 24));
+    console.log(`   Days difference: ${daysDiff}`);
+
+    if (daysDiff > 0) {
+      if (daysDiff >= 3) {
+        console.log(`   ✅ ${daysDiff} days early → 100 points`);
+        return 100;
+      }
+      if (daysDiff >= 1) {
+        console.log(`   ✅ ${daysDiff} days early → 80 points`);
+        return 80;
+      }
+    }
+    
+    if (daysDiff === 0) {
+      console.log(`   ✅ Due today (on time) → 60 points`);
+      return 60;
+    }
+    
+    console.log(`   ⚠️ OVERDUE by ${Math.abs(daysDiff)} days → -10 points`);
+    return -10; // Overdue penalty
+  };
+
   const handleTaskStatusChange = async (taskId, status) => {
-    if (!user?.id) return;
+    if (!user?.id || !user?.roomId) return;
 
     setUpdatingTaskId(taskId);
     setError(null);
 
     try {
-      const updates = status === 'done' 
-        ? { completed: true } 
-        : { completed: false }; // 'In Progress' means not yet completed
+      const task = normalizedTasks.find(t => t.id === taskId);
+      const isCompleting = status === 'done';
+      
+      // Calculate aura change first
+      let auraChange = 0;
+      
+      if (isCompleting && !task.completed) {
+        // Task is being marked as done - award points
+        auraChange = calculateAuraPoints(task, true);
+      } else if (!isCompleting && task.completed) {
+        // Task is being marked as in progress (was completed, now pending) - deduct points
+        auraChange = -(task.auraAwarded || 0);
+      }
+      
+      const updates = { 
+        completed: isCompleting ? true : false,
+      };
+      
+      // If completing, store the aura points earned in the task
+      if (isCompleting) {
+        updates.auraAwarded = auraChange;
+      }
 
       await updateTask({
         taskId,
@@ -146,10 +220,41 @@ const Home = () => {
         updates,
       });
 
+      // Apply aura points change
+      if (task && auraChange !== 0) {
+        try {
+          console.log(`🎯 Awarding ${auraChange} points to user:`, task.userId, `for task:`, task.name);
+          
+          await updateUserAura({
+            userId: task.userId,
+            roomId: user.roomId,
+            auraChange,
+            reason: isCompleting
+              ? (auraChange > 0
+                  ? `Completed task: ${task.name}`
+                  : `Completed overdue task: ${task.name}`)
+              : `Reverted task to pending: ${task.name}`,
+          });
+          
+          console.log(`✅ Aura points successfully awarded to:`, task.userId);
+          
+          // Refresh leaderboard to show updated aura points
+          const leaderboardResponse = await fetchLeaderboard({ 
+            userId: user.id, 
+            roomId: user.roomId, 
+            limit: 10 
+          });
+          setLeaders(leaderboardResponse.data ?? []);
+        } catch (auraErr) {
+          console.error("❌ Failed to update aura for user:", task.userId, auraErr);
+          setError(`Failed to award points: ${auraErr.message}`);
+        }
+      }
+
       // Update local state
       setTasks((prevTasks) =>
-        prevTasks.map((task) =>
-          task.id === taskId ? { ...task, completed: updates.completed } : task
+        prevTasks.map((t) =>
+          t.id === taskId ? { ...t, completed: updates.completed } : t
         )
       );
     } catch (err) {
@@ -162,7 +267,19 @@ const Home = () => {
   const formatDueDate = (dueDate) => {
     if (!dueDate) return 'No due date';
     
-    const date = new Date(dueDate);
+    // Parse date string as local date, not UTC
+    let date;
+    const dateParts = dueDate.split('-');
+    if (dateParts.length === 3) {
+      date = new Date(
+        parseInt(dateParts[0]), // year
+        parseInt(dateParts[1]) - 1, // month (0-indexed)
+        parseInt(dateParts[2]) // day
+      );
+    } else {
+      date = new Date(dueDate);
+    }
+    
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
