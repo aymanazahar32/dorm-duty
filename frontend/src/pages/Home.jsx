@@ -1,10 +1,10 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Crown, Home as HomeIcon } from "lucide-react";
+import { Crown, Home as HomeIcon, Calendar, ChevronDown, CheckCircle2, Clock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import RoommateCard from "../components/RoommateCard";
 import PieChart from "../components/PieChart";
 import { useAuth } from "../context/AuthContext";
-import { fetchLeaderboard, fetchTasks } from "../utils/api";
+import { fetchLeaderboard, fetchTasks, updateTask } from "../utils/api";
 
 const CHART_COLORS = ["#10B981", "#F59E0B", "#EF4444"];
 
@@ -15,6 +15,7 @@ const Home = () => {
   const [leaders, setLeaders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [updatingTaskId, setUpdatingTaskId] = useState(null);
 
   useEffect(() => {
     if (!user?.id || !user?.roomId) {
@@ -74,6 +75,7 @@ const Home = () => {
     () =>
       tasks.map((task) => ({
         id: task.id,
+        userId: task.user_id,
         name: task.task_name,
         completed: task.completed,
         dueDate: task.due_date,
@@ -82,6 +84,17 @@ const Home = () => {
       })),
     [tasks, leaderboardIndex]
   );
+
+  const myPendingTasks = useMemo(() => {
+    return normalizedTasks.filter(
+      (task) => task.userId === user?.id && !task.completed
+    ).sort((a, b) => {
+      // Sort by due date (earliest first), null dates last
+      if (!a.dueDate) return 1;
+      if (!b.dueDate) return -1;
+      return new Date(a.dueDate) - new Date(b.dueDate);
+    });
+  }, [normalizedTasks, user?.id]);
 
   const stats = useMemo(() => {
     const total = normalizedTasks.length;
@@ -115,6 +128,58 @@ const Home = () => {
   );
 
   const dormMaster = leaders[0];
+
+  const handleTaskStatusChange = async (taskId, status) => {
+    if (!user?.id) return;
+
+    setUpdatingTaskId(taskId);
+    setError(null);
+
+    try {
+      const updates = status === 'done' 
+        ? { completed: true } 
+        : { completed: false }; // 'In Progress' means not yet completed
+
+      await updateTask({
+        taskId,
+        userId: user.id,
+        updates,
+      });
+
+      // Update local state
+      setTasks((prevTasks) =>
+        prevTasks.map((task) =>
+          task.id === taskId ? { ...task, completed: updates.completed } : task
+        )
+      );
+    } catch (err) {
+      setError(err.message || "Failed to update task status");
+    } finally {
+      setUpdatingTaskId(null);
+    }
+  };
+
+  const formatDueDate = (dueDate) => {
+    if (!dueDate) return 'No due date';
+    
+    const date = new Date(dueDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const taskDate = new Date(date);
+    taskDate.setHours(0, 0, 0, 0);
+    
+    const diffTime = taskDate - today;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 0) return 'Today';
+    if (diffDays === 1) return 'Tomorrow';
+    if (diffDays === -1) return 'Yesterday';
+    if (diffDays < 0) return `${Math.abs(diffDays)} days overdue`;
+    if (diffDays <= 7) return `In ${diffDays} days`;
+    
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  };
 
   if (!user?.id || !user?.roomId) {
     return (
@@ -165,6 +230,74 @@ const Home = () => {
           {error}
         </div>
       )}
+
+      {/* Pending Tasks Section */}
+      <section className="mb-8 rounded-3xl border border-blue-200 bg-white/80 p-6 shadow-md backdrop-blur">
+        <div className="flex items-center gap-3 mb-5">
+          <CheckCircle2 className="h-7 w-7 text-blue-600" />
+          <h2 className="text-2xl font-bold text-gray-800">My Pending Tasks</h2>
+        </div>
+
+        {loading ? (
+          <p className="text-sm text-gray-500">Loading your tasks...</p>
+        ) : myPendingTasks.length === 0 ? (
+          <div className="text-center py-8">
+            <CheckCircle2 className="mx-auto h-12 w-12 text-gray-300 mb-3" />
+            <p className="text-gray-500">No pending tasks! You're all caught up 🎉</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {myPendingTasks.map((task) => {
+              const isOverdue = task.dueDate && new Date(task.dueDate) < new Date();
+              
+              return (
+                <div
+                  key={task.id}
+                  className={`flex items-center justify-between p-4 rounded-xl border-2 transition-all ${
+                    isOverdue 
+                      ? 'border-red-200 bg-red-50/50' 
+                      : 'border-blue-100 bg-gradient-to-r from-blue-50/50 to-white hover:shadow-md'
+                  }`}
+                >
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-gray-900 text-lg">{task.name}</h3>
+                    <div className="flex items-center gap-4 mt-1">
+                      <div className="flex items-center gap-1 text-sm text-gray-600">
+                        <Calendar className="h-4 w-4" />
+                        <span className={isOverdue ? 'text-red-600 font-semibold' : ''}>
+                          {formatDueDate(task.dueDate)}
+                        </span>
+                      </div>
+                      {task.auraAwarded > 0 && (
+                        <div className="flex items-center gap-1 text-sm text-purple-600">
+                          <Crown className="h-4 w-4" />
+                          <span>{task.auraAwarded} aura</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="relative ml-4">
+                    <select
+                      value=""
+                      onChange={(e) => handleTaskStatusChange(task.id, e.target.value)}
+                      disabled={updatingTaskId === task.id}
+                      className="appearance-none bg-white border-2 border-blue-300 rounded-lg px-4 py-2 pr-10 text-sm font-medium text-gray-700 hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                    >
+                      <option value="" disabled>
+                        {updatingTaskId === task.id ? 'Updating...' : 'Update Status'}
+                      </option>
+                      <option value="progress">Mark as In Progress</option>
+                      <option value="done">Mark as Done ✓</option>
+                    </select>
+                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 pointer-events-none" />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
 
       <div className="grid gap-6 md:grid-cols-3">
         <section className="rounded-3xl border border-gray-100 bg-white/80 p-6 shadow-md backdrop-blur">
