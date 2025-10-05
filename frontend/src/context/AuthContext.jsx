@@ -177,6 +177,7 @@ export const AuthProvider = ({ children }) => {
 
   /**
    * Sign up with email and password
+   * NOTE: If email confirmation is enabled in Supabase, users will need to verify their email
    */
   const signUp = async (email, password, name) => {
     try {
@@ -189,10 +190,22 @@ export const AuthProvider = ({ children }) => {
             name: name,
           },
           emailRedirectTo: window.location.origin + "/home",
+          // If you've disabled email confirmation in Supabase settings,
+          // users will be automatically logged in after signup
         },
       });
 
       if (error) throw error;
+
+      // Check if email confirmation is required
+      if (data.user && !data.session) {
+        return { 
+          success: true, 
+          user: data.user, 
+          needsConfirmation: true,
+          message: "Please check your email to confirm your account."
+        };
+      }
 
       return { success: true, user: data.user };
     } catch (error) {

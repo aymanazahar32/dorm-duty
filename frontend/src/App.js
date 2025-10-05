@@ -12,6 +12,8 @@ import Tasks from "./pages/Tasks";
 import Laundry from "./pages/Laundry";
 import Split from "./pages/Split";
 import Auth from "./pages/Auth";
+import RoomSetup from "./pages/RoomSetup";
+import Profile from "./pages/Profile";
 import Navbar from "./components/Navbar";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 
@@ -52,12 +54,17 @@ function App() {
           <Route path="/auth" element={<AuthPage />} />
 
           <Route element={<ProtectedRoute />}>
+            {/* Room Setup - no navbar */}
+            <Route path="/room-setup" element={<RoomSetup />} />
+            
+            {/* Dashboard with navbar */}
             <Route element={<DashboardLayout />}>
               <Route path="/" element={<Navigate to="/home" replace />} />
               <Route path="/home" element={<Home />} />
               <Route path="/tasks" element={<Tasks />} />
               <Route path="/laundry" element={<Laundry />} />
               <Route path="/split" element={<Split />} />
+              <Route path="/profile" element={<Profile />} />
             </Route>
           </Route>
 

@@ -6,15 +6,20 @@
 const express = require('express');
 const cors = require('cors');
 const app = express();
-const PORT = 8000;
+const PORT = process.env.PORT || 3001;
 
-// Middleware
-app.use(cors());
+// Middleware - Configure CORS to allow credentials
+app.use(cors({
+  origin: 'http://localhost:3000', // Frontend origin
+  credentials: true, // Allow credentials (cookies, authorization headers)
+}));
 app.use(express.json());
 
 // In-memory storage (replace with real database)
 const users = new Map();
 const rooms = new Map();
+const tasks = new Map();
+const laundryData = new Map();
 
 // Initialize some test rooms
 rooms.set('room-1', { id: 'room-1', name: 'Room 301', members: [] });
@@ -184,7 +189,182 @@ app.post('/api/rooms', (req, res) => {
 
   rooms.set(roomId, newRoom);
   console.log('✅ New room created:', newRoom);
-  res.status(201).json(newRoom);
+  res.status(201).json({ roomId: roomId, ...newRoom });
+});
+
+/**
+ * GET /api/tasks
+ * Get tasks filtered by roomId (shows all room tasks for collaboration)
+ * userId is used for authentication but not for filtering
+ */
+app.get('/api/tasks', (req, res) => {
+  const { roomId, onlyIncomplete } = req.query;
+  
+  let filteredTasks = Array.from(tasks.values());
+  
+  // Filter by room to show all tasks for roommates
+  if (roomId) {
+    filteredTasks = filteredTasks.filter(task => task.room_id === roomId);
+  }
+  
+  if (onlyIncomplete === 'true') {
+    filteredTasks = filteredTasks.filter(task => !task.completed);
+  }
+  
+  res.json({ data: filteredTasks });
+});
+
+/**
+ * POST /api/tasks
+ * Create a new task
+ */
+app.post('/api/tasks', (req, res) => {
+  const { userId, roomId, taskName, dueDate, auraAwarded, assignedUserId } = req.body;
+  
+  if (!taskName) {
+    return res.status(400).json({ error: 'Task name is required' });
+  }
+  
+  const taskId = `task-${Date.now()}`;
+  const newTask = {
+    id: taskId,
+    task_name: taskName,
+    user_id: assignedUserId || userId,
+    room_id: roomId,
+    due_date: dueDate,
+    aura_awarded: auraAwarded || 0,
+    completed: false,
+    created_at: new Date().toISOString(),
+  };
+  
+  tasks.set(taskId, newTask);
+  console.log('✅ Task created:', newTask);
+  res.status(201).json({ data: newTask });
+});
+
+/**
+ * PATCH /api/tasks
+ * Update a task
+ */
+app.patch('/api/tasks', (req, res) => {
+  const { taskId, updates } = req.body;
+  
+  if (!tasks.has(taskId)) {
+    return res.status(404).json({ error: 'Task not found' });
+  }
+  
+  const task = tasks.get(taskId);
+  const updatedTask = { ...task, ...updates };
+  tasks.set(taskId, updatedTask);
+  
+  console.log('✅ Task updated:', updatedTask);
+  res.json({ data: updatedTask });
+});
+
+/**
+ * DELETE /api/tasks
+ * Delete a task
+ */
+app.delete('/api/tasks', (req, res) => {
+  const { taskId } = req.body;
+  
+  if (!tasks.has(taskId)) {
+    return res.status(404).json({ error: 'Task not found' });
+  }
+  
+  tasks.delete(taskId);
+  console.log('✅ Task deleted:', taskId);
+  res.json({ success: true });
+});
+
+/**
+ * GET /api/leaderboard
+ * Get leaderboard data
+ */
+app.get('/api/leaderboard', (req, res) => {
+  const { userId, roomId, limit = 5, page = 1 } = req.query;
+  
+  // Get all users in the room
+  let roomUsers = Array.from(users.values());
+  
+  if (roomId) {
+    roomUsers = roomUsers.filter(user => user.roomId === roomId);
+  }
+  
+  // Calculate aura points based on completed tasks
+  const leaderboard = roomUsers.map(user => {
+    const userTasks = Array.from(tasks.values()).filter(
+      task => task.user_id === user.userId && task.completed
+    );
+    
+    const auraPoints = userTasks.reduce((sum, task) => sum + (task.aura_awarded || 0), 0);
+    
+    return {
+      id: user.userId,
+      name: user.name,
+      email: user.email,
+      aura_points: auraPoints,
+    };
+  });
+  
+  // Sort by aura points descending
+  leaderboard.sort((a, b) => b.aura_points - a.aura_points);
+  
+  // Add rank
+  leaderboard.forEach((entry, index) => {
+    entry.rank = index + 1;
+  });
+  
+  // Paginate
+  const startIndex = (page - 1) * limit;
+  const endIndex = startIndex + parseInt(limit);
+  const paginatedLeaderboard = leaderboard.slice(startIndex, endIndex);
+  
+  res.json({
+    data: paginatedLeaderboard,
+    pagination: {
+      page: parseInt(page),
+      limit: parseInt(limit),
+      total: leaderboard.length,
+    },
+  });
+});
+
+/**
+ * GET /api/laundry
+ * Get laundry data for a user/room
+ */
+app.get('/api/laundry', (req, res) => {
+  const { userId, roomId } = req.query;
+  
+  const key = roomId || userId;
+  const data = laundryData.get(key) || {
+    room_id: roomId,
+    user_id: userId,
+    machines: [],
+  };
+  
+  res.json({ data });
+});
+
+/**
+ * PATCH /api/laundry
+ * Update laundry data
+ */
+app.patch('/api/laundry', (req, res) => {
+  const { userId, roomId, updates } = req.body;
+  
+  const key = roomId || userId;
+  const existing = laundryData.get(key) || {
+    room_id: roomId,
+    user_id: userId,
+  };
+  
+  const updated = { ...existing, ...updates };
+  laundryData.set(key, updated);
+  
+  console.log('✅ Laundry data updated:', updated);
+  res.json({ data: updated });
 });
 
 // Error handling middleware
@@ -198,16 +378,23 @@ app.listen(PORT, () => {
   console.log(`
 ╔════════════════════════════════════════╗
 ║   🚀 DormDuty Mock Backend Server     ║
-║   Running on: http://localhost:${PORT}  ║
+║   Running on: http://localhost:${PORT}   ║
 ╚════════════════════════════════════════╝
 
 Available endpoints:
   POST   /api/registerUser
   GET    /api/user/:userId
-  GET    /api/room/:roomId
   PUT    /api/user/:userId/room
   GET    /api/rooms
   POST   /api/rooms
+  GET    /api/room/:roomId
+  GET    /api/tasks
+  POST   /api/tasks
+  PATCH  /api/tasks
+  DELETE /api/tasks
+  GET    /api/leaderboard
+  GET    /api/laundry
+  PATCH  /api/laundry
   GET    /health
 
 Test with:

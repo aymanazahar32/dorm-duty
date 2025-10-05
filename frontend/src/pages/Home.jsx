@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Crown } from "lucide-react";
+import { Crown, Home as HomeIcon } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import RoommateCard from "../components/RoommateCard";
 import PieChart from "../components/PieChart";
 import { useAuth } from "../context/AuthContext";
@@ -9,6 +10,7 @@ const CHART_COLORS = ["#10B981", "#F59E0B", "#EF4444"];
 
 const Home = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [tasks, setTasks] = useState([]);
   const [leaders, setLeaders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -118,12 +120,24 @@ const Home = () => {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-100 via-white to-emerald-100 p-6">
         <div className="max-w-lg rounded-3xl border border-amber-200 bg-white/90 p-8 text-center shadow-lg">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-amber-100 rounded-full mb-4">
+            <HomeIcon className="w-8 h-8 text-amber-600" />
+          </div>
           <h1 className="text-2xl font-semibold text-gray-900">
-            Room context required
+            Room Setup Required
           </h1>
           <p className="mt-3 text-sm text-gray-600">
-            Add your Supabase user ID and room ID on the login screen so we can
-            pull real chore data from the backend.
+            You need to create or join a room before you can access your chore dashboard.
+          </p>
+          <button
+            onClick={() => navigate("/room-setup")}
+            className="mt-6 px-6 py-3 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition shadow-lg hover:shadow-xl flex items-center justify-center gap-2 mx-auto"
+          >
+            <HomeIcon className="w-5 h-5" />
+            Set Up Room
+          </button>
+          <p className="mt-4 text-xs text-gray-500">
+            Create a new room or join an existing one with a room code
           </p>
         </div>
       </div>

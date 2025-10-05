@@ -5,6 +5,7 @@ import {
   ClipboardList,
   WashingMachine,
   Wallet,
+  User,
 } from "lucide-react";
 
 const tabs = [
@@ -12,6 +13,7 @@ const tabs = [
   { name: "Tasks", to: "/tasks", Icon: ClipboardList },
   { name: "Laundry", to: "/laundry", Icon: WashingMachine },
   { name: "Split", to: "/split", Icon: Wallet },
+  { name: "Profile", to: "/profile", Icon: User },
 ];
 
 const Navbar = () => {

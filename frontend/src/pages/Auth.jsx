@@ -33,7 +33,11 @@ export default function Auth() {
         // Sign up with email and password
         const result = await signUp(email, password, name);
         if (result.success) {
-          setMessage("Account created! Check your email to verify.");
+          if (result.needsConfirmation) {
+            setMessage(result.message || "Account created! Please check your email to confirm your account.");
+          } else {
+            setMessage("Account created successfully! You're logged in.");
+          }
         } else {
           setError(result.error);
         }
