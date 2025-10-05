@@ -110,19 +110,6 @@ export default function Schedule() {
         .map(taskId => AVAILABLE_TASKS.find(t => t.id === taskId)?.name)
         .filter(name => name !== undefined);
 
-      await geminiService.optimizeSchedules(schedules, taskNames);
-      setSuggestions(response.suggestions);
-
-      // ... later in the error handler ...
-
-      const fallback = geminiService.generateFallbackSuggestions(
-        schedules,
-        selectedTasks
-          .map(id => AVAILABLE_TASKS.find(t => t.id === id)?.name)
-          .filter(name => name !== undefined)
-      );
-      setSuggestions(fallback);
-
       // Call AI service
       const aiSuggestions = await geminiService.optimizeSchedules(schedules, taskNames);
 

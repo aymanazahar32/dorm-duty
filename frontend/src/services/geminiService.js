@@ -41,34 +41,29 @@ class GeminiService {
     }
 
     const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': this.apiKey,
+      },
+      body: JSON.stringify({ parts })
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Gemini API error (${response.status}): ${error}`);
+    }
+
     const data = await response.json();
     if (!data?.candidates?.[0]?.content?.parts?.[0]?.text) {
       throw new Error('Unexpected API response structure');
     }
     return data.candidates[0].content.parts[0].text;
-        'Content-Type': 'application/json',
-       'x-goog-api-key': this.apiKey,
-      },
-      body: JSON.stringify({ parts })
-    });
+  }
 
-    // Build parts array - text prompt + optional image
-    const parts = [{ text: prompt }];
-    
-    if (imageData) {
-      parts.push({
-        inlineData: {
-          mimeType: imageData.mimeType,
-          data: imageData.data
-        }
-      });
-    }
-
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+  /**
+   * Extract JSON from AI response
+   */
   extractJSON(response, isArray = false) {
     const startChar = isArray ? '[' : '{';
     const endChar = isArray ? ']' : '}';
@@ -86,37 +81,6 @@ class GeminiService {
     } catch (error) {
       throw new Error(`Failed to parse JSON from AI response: ${error.message}`);
     }
-  }
-      const error = await response.text();
-      throw new Error(`Gemini API error (${response.status}): ${error}`);
-    }
-
-    const data = await response.json();
-    return data.candidates[0].content.parts[0].text;
-  }
-  async optimizeSchedules(schedules, tasks) {
-    if (!Array.isArray(schedules) || schedules.length === 0) {
-      throw new Error('schedules must be a non-empty array');
-    }
-    if (!Array.isArray(tasks) || tasks.length === 0) {
-      throw new Error('tasks must be a non-empty array');
-    }
-    const prompt = this.buildOptimizationPrompt(schedules, tasks);
-    const response = await this.callGemini(prompt);
-    return this.extractJSON(response, true);
-  }
-    const startChar = isArray ? '[' : '{';
-    const endChar = isArray ? ']' : '}';
-    
-    const firstIndex = response.indexOf(startChar);
-    const lastIndex = response.lastIndexOf(endChar);
-    
-    if (firstIndex === -1 || lastIndex === -1 || lastIndex <= firstIndex) {
-      throw new Error('No valid JSON found in AI response');
-    }
-    
-    const jsonString = response.substring(firstIndex, lastIndex + 1);
-    return JSON.parse(jsonString);
   }
 
   /**
