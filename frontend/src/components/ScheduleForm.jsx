@@ -76,9 +76,9 @@ export default function ScheduleForm({ onSubmit, onCancel }) {
 
       // Add extracted time slots
       if (extractedData.timeSlots && extractedData.timeSlots.length > 0) {
-        const slotsWithIds = extractedData.timeSlots.map(slot => ({
+        const slotsWithIds = extractedData.timeSlots.map((slot, index) => ({
           ...slot,
-          id: Date.now() + Math.random() // Unique ID
+          id: `${Date.now()}-${index}-${Math.random()}`
         }));
         setTimeSlots(slotsWithIds);
       }

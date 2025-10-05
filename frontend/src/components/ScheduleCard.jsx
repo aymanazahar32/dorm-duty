@@ -63,7 +63,7 @@ export default function ScheduleCard({ schedule, onDelete }) {
                 }`}
                 title={slot.activity || (slot.isBusy ? 'Busy' : 'Available')}
               >
-                {slot.day.substring(0, 3)} {slot.startTime}-{slot.endTime}
+                {slot.day?.substring(0, 3) || '???'} {slot.startTime}-{slot.endTime}
                 {slot.isBusy ? ' 🔴' : ' 🟢'}
               </div>
             ))}

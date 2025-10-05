@@ -105,9 +105,28 @@ export default function Schedule() {
       geminiService.setApiKey(apiKey);
 
       // Get task names
-      const taskNames = selectedTasks.map(taskId => 
-        AVAILABLE_TASKS.find(t => t.id === taskId)?.name
+      // Filter out any undefined names before calling optimizeSchedules
+-      const taskNames = selectedTasks.map(taskId => 
+-        AVAILABLE_TASKS.find(t => t.id === taskId)?.name
+      const taskNames = selectedTasks
+        .map(taskId => AVAILABLE_TASKS.find(t => t.id === taskId)?.name)
+        .filter(name => name !== undefined);
+
+      await geminiService.optimizeSchedules(schedules, taskNames);
+      setSuggestions(response.suggestions);
+
+      // ... later in the error handler ...
+
+-      const fallback = geminiService.generateFallbackSuggestions(
+-        schedules, 
+-        selectedTasks.map(id => AVAILABLE_TASKS.find(t => t.id === id)?.name)
+      const fallback = geminiService.generateFallbackSuggestions(
+        schedules,
+        selectedTasks
+          .map(id => AVAILABLE_TASKS.find(t => t.id === id)?.name)
+          .filter(name => name !== undefined)
       );
+      setSuggestions(fallback);
 
       // Call AI service
       const aiSuggestions = await geminiService.optimizeSchedules(schedules, taskNames);

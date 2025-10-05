@@ -63,9 +63,11 @@ export default function TaskSuggestions({ suggestions }) {
         </div>
         <div className="text-center">
           <div className="text-2xl font-bold text-green-600">
-            {Math.round(
-              (suggestions.reduce((sum, s) => sum + s.confidence, 0) / suggestions.length) * 100
-            )}%
+            {suggestions.length > 0
+              ? Math.round(
+                  (suggestions.reduce((sum, s) => sum + s.confidence, 0) / suggestions.length) * 100
+                )
+              : 0}%
           </div>
           <div className="text-sm text-gray-600">Avg Confidence</div>
         </div>
@@ -73,12 +75,15 @@ export default function TaskSuggestions({ suggestions }) {
 
       {/* Suggestions List */}
       <div className="grid grid-cols-1 gap-4">
-        {suggestions.map((suggestion, index) => {
-          const badge = getConfidenceBadge(suggestion.confidence);
-          
-          return (
-            <div
-              key={index}
+       <div className="grid grid-cols-1 gap-4">
+         {suggestions.map((suggestion, index) => {
+           const badge = getConfidenceBadge(suggestion.confidence);
+           
+           return (
+             <div
+               key={`${suggestion.task}-${suggestion.assignedTo}-${suggestion.day}`}
+               className="bg-gradient-to-br from-purple-50 via-white to-blue-50 rounded-xl border-2 border-purple-200 p-6 hover:shadow-lg transition-all"
+             >
               className="bg-gradient-to-br from-purple-50 via-white to-blue-50 rounded-xl border-2 border-purple-200 p-6 hover:shadow-lg transition-all"
             >
               {/* Header */}
@@ -142,14 +147,26 @@ export default function TaskSuggestions({ suggestions }) {
       </div>
 
       {/* Actions */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <h3 className="font-semibold text-blue-900 mb-2">What's Next?</h3>
-        <p className="text-sm text-blue-800 mb-3">
-          Review these AI suggestions and add them to your task list. You can always modify the assignments if needed.
-        </p>
         <div className="flex gap-3">
-          <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium">
+          <button
+            onClick={() => {
+              // TODO: Implement add all to tasks functionality
+              console.log('Adding all tasks:', suggestions);
+            }}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+          >
             Add All to Tasks
+          </button>
+          <button
+            onClick={() => {
+              // TODO: Implement CSV export functionality
+              console.log('Exporting to CSV:', suggestions);
+            }}
+            className="px-4 py-2 bg-white text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors text-sm font-medium"
+          >
+            Export as CSV
+          </button>
+        </div>
           </button>
           <button className="px-4 py-2 bg-white text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors text-sm font-medium">
             Export as CSV
