@@ -1,13 +1,13 @@
 import { supabase } from "./supabaseClient";
 
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL ?? "";
+export const API_BASE_URL = process.env.REACT_APP_API_BASE_URL ?? "";
 
 async function getAccessToken() {
   const { data } = await supabase.auth.getSession();
   return data?.session?.access_token ?? null;
 }
 
-async function apiFetch(path, { method = "GET", body, headers = {}, signal } = {}) {
+export async function apiFetch(path, { method = "GET", body, headers = {}, signal } = {}) {
   const token = await getAccessToken();
   const mergedHeaders = new Headers({
     "Content-Type": "application/json",

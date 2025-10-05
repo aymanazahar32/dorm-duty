@@ -18,9 +18,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { supabase } from "../utils/supabaseClient";
-
-// Backend API URL - update in .env
-const API_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:3001";
+import { apiFetch } from "../utils/api";
 
 const AuthContext = createContext();
 
@@ -81,42 +79,42 @@ export const AuthProvider = ({ children }) => {
     try {
       console.log("📞 Calling /api/registerUser...");
       
-      const response = await fetch(`${API_URL}/api/registerUser`, {
+      const payload = await apiFetch("/api/registerUser", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
+        body: {
           email: supabaseUser.email,
           userId: supabaseUser.id,
-          name: supabaseUser.user_metadata?.full_name || 
-                supabaseUser.user_metadata?.name || 
-                supabaseUser.email?.split("@")[0] || 
-                "Roommate",
-        }),
+          name:
+            supabaseUser.user_metadata?.full_name ||
+            supabaseUser.user_metadata?.name ||
+            supabaseUser.email?.split("@")[0] ||
+            "Roommate",
+        },
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        
-        // Create user object in format API client expects
-        const userPayload = {
-          id: supabaseUser.id,          // Supabase UUID for API calls
-          roomId: data.roomId || null,   // Backend-assigned room ID
-          email: supabaseUser.email,
-          name: data.name || supabaseUser.user_metadata?.full_name || "Roommate",
-        };
-        
-        setUser(userPayload);
-        localStorage.setItem("smartdorm_user", JSON.stringify(userPayload));
-        
-        console.log("✅ User registered:", userPayload);
-        return userPayload;
-      } else {
-        const errorText = await response.text();
-        console.error("❌ Failed to register user:", errorText);
-        throw new Error("Backend registration failed");
-      }
+      // API may return either { data: {...} } or { user: {...} }
+      const responseUser =
+        payload?.user ??
+        payload?.data ??
+        payload ??
+        {};
+
+      const userPayload = {
+        id: responseUser.id ?? supabaseUser.id,
+        roomId: responseUser.room_id ?? responseUser.roomId ?? null,
+        email: responseUser.email ?? supabaseUser.email,
+        name:
+          responseUser.name ??
+          supabaseUser.user_metadata?.full_name ??
+          supabaseUser.email?.split("@")[0] ??
+          "Roommate",
+      };
+
+      setUser(userPayload);
+      localStorage.setItem("smartdorm_user", JSON.stringify(userPayload));
+
+      console.log("✅ User registered:", userPayload);
+      return userPayload;
     } catch (error) {
       console.error("❌ Error registering user:", error);
       
