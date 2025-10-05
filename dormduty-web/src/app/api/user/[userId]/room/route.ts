@@ -91,10 +91,11 @@ export async function PUT(
       user: user,
     });
     return addCorsHeaders(response, req);
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("User room update error:", err);
+    const errorMessage = err instanceof Error ? err.message : "Unknown error";
     const errorResponse = NextResponse.json(
-      { error: "Internal server error", details: err.message },
+      { error: "Internal server error", details: errorMessage },
       { status: 500 }
     );
     return addCorsHeaders(errorResponse, req);

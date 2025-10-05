@@ -61,9 +61,10 @@ export async function GET(req: Request) {
       const response = NextResponse.json({ rooms: data });
       return addCorsHeaders(response, req);
     }
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const errorMessage = err instanceof Error ? err.message : "Unknown error";
     const response = NextResponse.json(
-      { error: "Internal server error", details: err.message },
+      { error: "Internal server error", details: errorMessage },
       { status: 500 }
     );
     return addCorsHeaders(response, req);
@@ -157,10 +158,11 @@ export async function POST(req: Request) {
       { status: 201 }
     );
     return addCorsHeaders(response, req);
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("Room creation error:", err);
+    const errorMessage = err instanceof Error ? err.message : "Unknown error";
     const response = NextResponse.json(
-      { error: "Internal server error", details: err.message },
+      { error: "Internal server error", details: errorMessage },
       { status: 500 }
     );
     return addCorsHeaders(response, req);
@@ -207,9 +209,10 @@ export async function PUT(req: Request) {
 
     const response = NextResponse.json({ room: data });
     return addCorsHeaders(response, req);
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const errorMessage = err instanceof Error ? err.message : "Unknown error";
     const response = NextResponse.json(
-      { error: "Internal server error", details: err.message },
+      { error: "Internal server error", details: errorMessage },
       { status: 500 }
     );
     return addCorsHeaders(response, req);

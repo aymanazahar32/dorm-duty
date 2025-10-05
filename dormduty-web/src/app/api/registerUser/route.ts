@@ -72,10 +72,11 @@ export async function POST(req: Request) {
       roomId: newUser.room_id,
     });
     return addCorsHeaders(response, req);
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("Register user error:", err);
+    const errorMessage = err instanceof Error ? err.message : "Unknown error";
     const response = NextResponse.json(
-      { error: "Internal server error", details: err.message },
+      { error: "Internal server error", details: errorMessage },
       { status: 500 }
     );
     return addCorsHeaders(response, req);
