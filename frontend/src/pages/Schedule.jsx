@@ -106,8 +106,6 @@ export default function Schedule() {
 
       // Get task names
       // Filter out any undefined names before calling optimizeSchedules
--      const taskNames = selectedTasks.map(taskId => 
--        AVAILABLE_TASKS.find(t => t.id === taskId)?.name
       const taskNames = selectedTasks
         .map(taskId => AVAILABLE_TASKS.find(t => t.id === taskId)?.name)
         .filter(name => name !== undefined);
@@ -117,9 +115,6 @@ export default function Schedule() {
 
       // ... later in the error handler ...
 
--      const fallback = geminiService.generateFallbackSuggestions(
--        schedules, 
--        selectedTasks.map(id => AVAILABLE_TASKS.find(t => t.id === id)?.name)
       const fallback = geminiService.generateFallbackSuggestions(
         schedules,
         selectedTasks
