@@ -11,8 +11,6 @@ import {
   User,
 } from "lucide-react";
 
-const noop = () => {};
-
 const formatDueLabel = (dueDate) => {
   if (!dueDate) {
     return { label: "No due date", type: "none" };
@@ -92,10 +90,11 @@ const TaskCard = ({
   priority = "medium",
   category,
   notes,
-  onToggle = noop,
-  onSnooze = noop,
-  onChangePriority = noop,
-  onDelete = noop,
+  onToggle,
+  onSnooze,
+  onChangePriority,
+  onDelete,
+  actions,
 }) => {
   const dueMeta = useMemo(() => formatDueLabel(dueDate), [dueDate]);
   const statusVariant = completed ? "completed" : dueMeta.type;
@@ -126,6 +125,10 @@ const TaskCard = ({
     </span>
   );
 
+  const canSnooze = !!onSnooze && !completed;
+  const canChangePriority = typeof onChangePriority === "function";
+  const canDelete = typeof onDelete === "function";
+
   return (
     <article
       className={`relative overflow-hidden rounded-2xl border ${
@@ -135,7 +138,7 @@ const TaskCard = ({
     >
       <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-200 via-emerald-200 to-purple-200" />
 
-      <div className="p-6 flex flex-col gap-5">
+      <div className="flex flex-col gap-5 p-6">
         <header className="flex flex-wrap items-start justify-between gap-3">
           <div className="space-y-1">
             <p
@@ -166,13 +169,15 @@ const TaskCard = ({
         </header>
 
         <div className="flex flex-wrap items-center gap-2 text-xs">
-          <span
-            className={`inline-flex items-center gap-2 rounded-full px-3 py-1 font-semibold ${
-              priorityStyles[priority] || priorityStyles.medium
-            }`}
-          >
-            <ArrowUpDown className="h-3.5 w-3.5" /> {priorityLabel[priority] || "Priority"}
-          </span>
+          {canChangePriority && (
+            <span
+              className={`inline-flex items-center gap-2 rounded-full px-3 py-1 font-semibold ${
+                priorityStyles[priority] || priorityStyles.medium
+              }`}
+            >
+              <ArrowUpDown className="h-3.5 w-3.5" /> {priorityLabel[priority] || "Priority"}
+            </span>
+          )}
           {dueDate && (
             <span className="inline-flex items-center gap-1 rounded-full border border-blue-100 bg-blue-50 px-2.5 py-1 text-[11px] font-semibold text-blue-600">
               <CalendarDays className="h-3.5 w-3.5" /> Due {dueDate}
@@ -181,13 +186,13 @@ const TaskCard = ({
         </div>
 
         {notes && (
-          <p className="rounded-xl bg-slate-50/80 px-4 py-3 text-sm text-gray-700 border border-slate-100">
+          <p className="rounded-xl border border-slate-100 bg-slate-50/80 px-4 py-3 text-sm text-gray-700">
             {notes}
           </p>
         )}
 
         <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
-          {!completed && (
+          {canSnooze && (
             <button
               type="button"
               onClick={onSnooze}
@@ -196,20 +201,25 @@ const TaskCard = ({
               <AlarmClock className="h-3.5 w-3.5" /> Snooze +1 day
             </button>
           )}
-          <button
-            type="button"
-            onClick={onChangePriority}
-            className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-white px-3 py-1 font-semibold text-gray-600 transition hover:bg-gray-100"
-          >
-            <ArrowUpDown className="h-3.5 w-3.5" /> Cycle priority
-          </button>
-          <button
-            type="button"
-            onClick={onDelete}
-            className="inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-3 py-1 font-semibold text-red-600 transition hover:bg-red-100"
-          >
-            <Trash2 className="h-3.5 w-3.5" /> Remove
-          </button>
+          {canChangePriority && (
+            <button
+              type="button"
+              onClick={onChangePriority}
+              className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-white px-3 py-1 font-semibold text-gray-600 transition hover:bg-gray-100"
+            >
+              <ArrowUpDown className="h-3.5 w-3.5" /> Cycle priority
+            </button>
+          )}
+          {canDelete && (
+            <button
+              type="button"
+              onClick={onDelete}
+              className="inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-3 py-1 font-semibold text-red-600 transition hover:bg-red-100"
+            >
+              <Trash2 className="h-3.5 w-3.5" /> Remove
+            </button>
+          )}
+          {actions}
         </div>
       </div>
 

@@ -1,3 +1,17 @@
+# DormDuty Frontend
+
+## Environment Setup
+
+Rename `frontend/.env.example` to `.env.local` and set:
+
+```
+REACT_APP_SUPABASE_URL=<https://...>
+REACT_APP_SUPABASE_ANON_KEY=<anon-key>
+REACT_APP_API_BASE_URL=http://localhost:3000
+```
+
+Run `npm install` then `npm start` to launch the SPA against the Next.js backend.
+
 # Getting Started with Create React App
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
