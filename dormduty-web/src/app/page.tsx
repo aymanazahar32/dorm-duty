@@ -1,103 +1,50 @@
-import Image from "next/image";
+import Link from "next/link";
 
 export default function Home() {
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-slate-950 px-6 py-16 text-slate-100">
+      <div className="text-center space-y-4 max-w-2xl">
+        <p className="text-sm uppercase tracking-[0.3em] text-emerald-300">DormDuty Backend</p>
+        <h1 className="text-4xl font-bold sm:text-5xl">API & Supabase Auth deployment is live.</h1>
+        <p className="text-base text-slate-300 sm:text-lg">
+          This Next.js app hosts the DormDuty API route handlers and Supabase authentication glue. Use the React
+          dashboard to manage chores, or hit the API routes directly for integration tests.
+        </p>
+      </div>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+      <div className="flex flex-col items-center gap-3 sm:flex-row">
+        <Link
+          href="/api/registerUser"
+          className="rounded-full bg-emerald-400 px-6 py-3 text-sm font-semibold text-emerald-950 shadow-lg shadow-emerald-400/40 transition hover:bg-emerald-300"
+        >
+          Test registerUser endpoint
+        </Link>
+        <a
+          href="https://github.com/aymanazahar32/dorm-duty"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="rounded-full border border-slate-700 px-6 py-3 text-sm font-semibold text-slate-200 transition hover:border-emerald-400 hover:text-emerald-300"
+        >
+          View source on GitHub
+        </a>
+      </div>
+
+      <div className="mt-8 grid gap-4 rounded-2xl border border-slate-800 bg-slate-900/60 p-6 text-left text-sm text-slate-300 shadow-lg">
+        <div>
+          <h2 className="mb-1 text-sm font-semibold text-emerald-200">Key Routes</h2>
+          <ul className="space-y-1">
+            <li><code className="rounded bg-slate-800 px-2 py-1 text-emerald-300">POST /api/registerUser</code> &ndash; registers a Supabase user in the DormDuty DB.</li>
+            <li><code className="rounded bg-slate-800 px-2 py-1 text-emerald-300">GET /api/tasks</code> &ndash; fetch room tasks (requires userId &amp; roomId query params).</li>
+            <li><code className="rounded bg-slate-800 px-2 py-1 text-emerald-300">POST /api/tasks</code> &ndash; create a new task for the authenticated room.</li>
+            <li><code className="rounded bg-slate-800 px-2 py-1 text-emerald-300">GET /api/leaderboard</code> &ndash; view aura leaderboard for a room.</li>
+            <li><code className="rounded bg-slate-800 px-2 py-1 text-emerald-300">PATCH /api/laundry</code> &ndash; update washer/dryer assignments and timers.</li>
+          </ul>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+        <p>
+          Need the full dashboard? Deploy the React client under <code className="rounded bg-slate-800 px-2 py-1">frontend/</code> and
+          point <code>REACT_APP_API_BASE_URL</code> to this deployment.
+        </p>
+      </div>
     </div>
   );
 }
