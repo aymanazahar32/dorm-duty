@@ -6,12 +6,14 @@ import {
   WashingMachine,
   Wallet,
   User,
+  Calendar,
 } from "lucide-react";
 
 const tabs = [
   { name: "Home", to: "/home", Icon: HomeIcon },
   { name: "Tasks", to: "/tasks", Icon: ClipboardList },
   { name: "Laundry", to: "/laundry", Icon: WashingMachine },
+  { name: "Schedule", to: "/schedule", Icon: Calendar },
   { name: "Split", to: "/split", Icon: Wallet },
   { name: "Profile", to: "/profile", Icon: User },
 ];
