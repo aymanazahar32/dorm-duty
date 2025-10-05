@@ -15,7 +15,7 @@ export async function OPTIONS(req: Request) {
  */
 export async function PUT(
   req: Request,
-  { params }: { params: { userId: string } }
+  { params }: { params: Promise<{ userId: string }> }
 ) {
   // Verify authentication
   const authResult = await verifyAuth(req);
@@ -25,7 +25,8 @@ export async function PUT(
   const { userId: authenticatedUserId, supabase } = authResult;
 
   try {
-    const { userId } = params;
+    // Await params in Next.js 15+
+    const { userId } = await params;
     const body = await req.json();
     const { roomId } = body;
 
