@@ -21,7 +21,7 @@ export const AuthProvider = ({ children }) => {
 
   // Login simulation (replace with API call)
   const login = (email, password) => {
-    const fakeUser = { name: "Salman", email };
+    const fakeUser = { name: "Md Salman Farse", email };
     localStorage.setItem("smartdorm_user", JSON.stringify(fakeUser));
     setUser(fakeUser);
   };

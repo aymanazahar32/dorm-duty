@@ -11,6 +11,8 @@ import Home from "./pages/Home";
 import Tasks from "./pages/Tasks";
 import Laundry from "./pages/Laundry";
 import Split from "./pages/Split";
+import Profile from "./pages/Profile";
+import StripeCheckout from "./pages/StripeCheckout";
 import Auth from "./pages/Auth";
 import Navbar from "./components/Navbar";
 import { AuthProvider, useAuth } from "./context/AuthContext";
@@ -58,6 +60,8 @@ function App() {
               <Route path="/tasks" element={<Tasks />} />
               <Route path="/laundry" element={<Laundry />} />
               <Route path="/split" element={<Split />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/stripe-checkout" element={<StripeCheckout />} />
             </Route>
           </Route>
 
