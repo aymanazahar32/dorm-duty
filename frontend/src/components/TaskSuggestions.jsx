@@ -1,7 +1,7 @@
 import React from 'react';
-import { Sparkles, User, Calendar, Clock, TrendingUp } from 'lucide-react';
+import { Sparkles, User, Calendar, Clock, TrendingUp, Loader2 } from 'lucide-react';
 
-export default function TaskSuggestions({ suggestions }) {
+export default function TaskSuggestions({ suggestions, onAddAll, isAdding = false }) {
   const getConfidenceBadge = (confidence) => {
     if (confidence >= 0.8) {
       return {
@@ -149,13 +149,18 @@ export default function TaskSuggestions({ suggestions }) {
       {/* Actions */}
         <div className="flex gap-3">
           <button
-            onClick={() => {
-              // TODO: Implement add all to tasks functionality
-              console.log('Adding all tasks:', suggestions);
-            }}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+            onClick={onAddAll}
+            disabled={isAdding}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
-            Add All to Tasks
+            {isAdding ? (
+              <>
+                <Loader2 className="animate-spin" size={16} />
+                Adding Tasks...
+              </>
+            ) : (
+              'Add All to Tasks'
+            )}
           </button>
           <button
             onClick={() => {

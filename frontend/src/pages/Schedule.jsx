@@ -5,6 +5,8 @@ import geminiService from '../services/geminiService';
 import ScheduleForm from '../components/ScheduleForm';
 import ScheduleCard from '../components/ScheduleCard';
 import TaskSuggestions from '../components/TaskSuggestions';
+import { useAuth } from '../context/AuthContext';
+import { createTask, fetchLeaderboard } from '../utils/api';
 
 const AVAILABLE_TASKS = [
   { id: 'cooking', name: 'Cooking', icon: '🍳', duration: 60 },
@@ -16,6 +18,7 @@ const AVAILABLE_TASKS = [
 ];
 
 export default function Schedule() {
+  const { user } = useAuth();
   const [schedules, setSchedules] = useState([]);
   const [suggestions, setSuggestions] = useState([]);
   const [selectedTasks, setSelectedTasks] = useState(['cooking', 'cleaning', 'laundry']);
@@ -24,6 +27,8 @@ export default function Schedule() {
   const [error, setError] = useState(null);
   const [apiKey, setApiKey] = useState('');
   const [showApiKeyInput, setShowApiKeyInput] = useState(false);
+  const [roommates, setRoommates] = useState([]);
+  const [isAddingTasks, setIsAddingTasks] = useState(false);
 
   useEffect(() => {
     loadSchedules();
@@ -38,6 +43,26 @@ export default function Schedule() {
       setShowApiKeyInput(true);
     }
   }, []);
+
+  // Load roommates when user is available
+  useEffect(() => {
+    if (user?.id && user?.roomId) {
+      loadRoommates();
+    }
+  }, [user?.id, user?.roomId]);
+
+  const loadRoommates = async () => {
+    try {
+      const { data } = await fetchLeaderboard({ 
+        userId: user.id, 
+        roomId: user.roomId, 
+        limit: 50 
+      });
+      setRoommates(data || []);
+    } catch (err) {
+      console.error('Failed to load roommates:', err);
+    }
+  };
 
   const loadSchedules = () => {
     const loaded = scheduleService.getSchedules();
@@ -137,6 +162,96 @@ export default function Schedule() {
     } finally {
       setIsOptimizing(false);
     }
+  };
+
+  const handleAddAllTasks = async () => {
+    if (!user?.id || !user?.roomId) {
+      setError('You must be logged in to add tasks');
+      return;
+    }
+
+    if (suggestions.length === 0) {
+      setError('No suggestions to add');
+      return;
+    }
+
+    setIsAddingTasks(true);
+    setError(null);
+
+    try {
+      let successCount = 0;
+      let failCount = 0;
+
+      for (const suggestion of suggestions) {
+        try {
+          // Find user ID by name
+          const assignedUser = roommates.find(
+            r => r.name?.toLowerCase() === suggestion.assignedTo?.toLowerCase() ||
+                 r.email?.toLowerCase() === suggestion.assignedTo?.toLowerCase()
+          );
+
+          // Convert day and time to due date
+          const dueDate = convertToDate(suggestion.day, suggestion.time);
+
+          await createTask({
+            userId: user.id,
+            roomId: user.roomId,
+            taskName: suggestion.task,
+            dueDate: dueDate,
+            auraAwarded: Math.round(suggestion.confidence * 100), // Use confidence as aura points
+            assignedUserId: assignedUser?.id || user.id, // Fallback to current user if not found
+          });
+
+          successCount++;
+        } catch (err) {
+          console.error(`Failed to create task ${suggestion.task}:`, err);
+          failCount++;
+        }
+      }
+
+      if (successCount > 0) {
+        alert(`Successfully added ${successCount} task(s)!${failCount > 0 ? ` (${failCount} failed)` : ''}`);
+        // Clear suggestions after adding
+        setSuggestions([]);
+        scheduleService.saveSuggestions([]);
+      } else {
+        setError('Failed to add any tasks. Please try again.');
+      }
+    } catch (err) {
+      console.error('Error adding tasks:', err);
+      setError(err.message || 'Failed to add tasks');
+    } finally {
+      setIsAddingTasks(false);
+    }
+  };
+
+  // Helper function to convert day and time to ISO date string
+  const convertToDate = (day, time) => {
+    const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const today = new Date();
+    const currentDay = today.getDay();
+    const targetDay = daysOfWeek.findIndex(d => d.toLowerCase() === day.toLowerCase());
+    
+    if (targetDay === -1) {
+      return null; // Invalid day
+    }
+
+    // Calculate days until target day
+    let daysUntil = targetDay - currentDay;
+    if (daysUntil < 0) {
+      daysUntil += 7; // Next week
+    }
+
+    const dueDate = new Date(today);
+    dueDate.setDate(today.getDate() + daysUntil);
+    
+    // Set time if provided
+    if (time) {
+      const [hours, minutes] = time.split(':');
+      dueDate.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+    }
+
+    return dueDate.toISOString().split('T')[0]; // Return YYYY-MM-DD format
   };
 
   const handleSaveApiKey = () => {
@@ -347,7 +462,11 @@ export default function Schedule() {
         {/* AI Suggestions */}
         {suggestions.length > 0 && (
           <div id="suggestions-section">
-            <TaskSuggestions suggestions={suggestions} />
+            <TaskSuggestions 
+              suggestions={suggestions} 
+              onAddAll={handleAddAllTasks}
+              isAdding={isAddingTasks}
+            />
           </div>
         )}
 
