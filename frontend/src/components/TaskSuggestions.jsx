@@ -74,16 +74,13 @@ export default function TaskSuggestions({ suggestions, onAddAll, isAdding = fals
       </div>
 
       {/* Suggestions List */}
-      <div className="grid grid-cols-1 gap-4">
        <div className="grid grid-cols-1 gap-4">
          {suggestions.map((suggestion, index) => {
            const badge = getConfidenceBadge(suggestion.confidence);
            
            return (
-             <div
-               key={`${suggestion.task}-${suggestion.assignedTo}-${suggestion.day}`}
-               className="bg-gradient-to-br from-purple-50 via-white to-blue-50 rounded-xl border-2 border-purple-200 p-6 hover:shadow-lg transition-all"
-             >
+            <div
+              key={`${suggestion.task}-${suggestion.assignedTo}-${suggestion.day}`}
               className="bg-gradient-to-br from-purple-50 via-white to-blue-50 rounded-xl border-2 border-purple-200 p-6 hover:shadow-lg transition-all"
             >
               {/* Header */}
@@ -147,31 +144,30 @@ export default function TaskSuggestions({ suggestions, onAddAll, isAdding = fals
       </div>
 
       {/* Actions */}
-        <div className="flex gap-3">
-          <button
-            onClick={onAddAll}
-            disabled={isAdding}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-          >
-            {isAdding ? (
-              <>
-                <Loader2 className="animate-spin" size={16} />
-                Adding Tasks...
-              </>
-            ) : (
-              'Add All to Tasks'
-            )}
-          </button>
-          <button
-            onClick={() => {
-              // TODO: Implement CSV export functionality
-              console.log('Exporting to CSV:', suggestions);
-            }}
-            className="px-4 py-2 bg-white text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors text-sm font-medium"
-          >
-            Export as CSV
-          </button>
-        </div>
+      <div className="flex gap-3">
+        <button
+          onClick={onAddAll}
+          disabled={isAdding}
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+        >
+          {isAdding ? (
+            <>
+              <Loader2 className="animate-spin" size={16} />
+              Adding Tasks...
+            </>
+          ) : (
+            'Add All to Tasks'
+          )}
+        </button>
+        <button
+          onClick={() => {
+            // TODO: Implement CSV export functionality
+            console.log('Exporting to CSV:', suggestions);
+          }}
+          className="px-4 py-2 bg-white text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors text-sm font-medium"
+        >
+          Export as CSV
+        </button>
       </div>
     </div>
   );
