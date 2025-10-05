@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Clock, Users, Sparkles, Plus, Trash2, AlertCircle } from 'lucide-react';
+import { Calendar, Clock, Users, Sparkles, Plus, AlertCircle } from 'lucide-react';
 import scheduleService from '../services/scheduleService';
 import geminiService from '../services/geminiService';
 import ScheduleForm from '../components/ScheduleForm';

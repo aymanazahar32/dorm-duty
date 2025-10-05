@@ -46,7 +46,11 @@ class GeminiService {
         'Content-Type': 'application/json',
         'x-goog-api-key': this.apiKey,
       },
-      body: JSON.stringify({ parts })
+      body: JSON.stringify({ 
+        contents: [{
+          parts: parts
+        }]
+      })
     });
 
     if (!response.ok) {
