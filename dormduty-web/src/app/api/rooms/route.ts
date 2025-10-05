@@ -61,9 +61,10 @@ export async function GET(req: Request) {
       const response = NextResponse.json({ rooms: data });
       return addCorsHeaders(response, req);
     }
-  } catch (err: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
     const response = NextResponse.json(
-      { error: "Internal server error", details: err.message },
+      { error: "Internal server error", details: message },
       { status: 500 }
     );
     return addCorsHeaders(response, req);
@@ -86,9 +87,9 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { name, createdBy } = body;
 
-    console.log("🔵 POST /api/rooms - userId:", userId);
-    console.log("🔵 POST /api/rooms - name:", name);
-    console.log("🔵 POST /api/rooms - createdBy:", createdBy);
+    console.log("POST /api/rooms - userId:", userId);
+    console.log("POST /api/rooms - name:", name);
+    console.log("POST /api/rooms - createdBy:", createdBy);
 
     if (!name || !name.trim()) {
       const response = NextResponse.json(
@@ -111,7 +112,7 @@ export async function POST(req: Request) {
     const adminSupabase = getSupabaseAdmin();
 
     // Create the room (using authenticated user's ID)
-    console.log("🔵 Attempting to insert room with created_by:", userId);
+    console.log("Attempting to insert room with created_by:", userId);
     const { data: room, error: roomError } = await adminSupabase
       .from("rooms")
       .insert([
@@ -123,8 +124,8 @@ export async function POST(req: Request) {
       .select()
       .single();
     
-    console.log("🔵 Room insert result:", room);
-    console.log("🔵 Room insert error:", roomError);
+    console.log("Room insert result:", room);
+    console.log("Room insert error:", roomError);
 
     if (roomError) {
       console.error("Error creating room:", roomError);
@@ -157,10 +158,11 @@ export async function POST(req: Request) {
       { status: 201 }
     );
     return addCorsHeaders(response, req);
-  } catch (err: any) {
-    console.error("Room creation error:", err);
+  } catch (error: unknown) {
+    console.error("Room creation error:", error);
+    const message = error instanceof Error ? error.message : String(error);
     const response = NextResponse.json(
-      { error: "Internal server error", details: err.message },
+      { error: "Internal server error", details: message },
       { status: 500 }
     );
     return addCorsHeaders(response, req);
@@ -207,9 +209,10 @@ export async function PUT(req: Request) {
 
     const response = NextResponse.json({ room: data });
     return addCorsHeaders(response, req);
-  } catch (err: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
     const response = NextResponse.json(
-      { error: "Internal server error", details: err.message },
+      { error: "Internal server error", details: message },
       { status: 500 }
     );
     return addCorsHeaders(response, req);

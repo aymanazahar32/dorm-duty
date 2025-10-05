@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { verifyAuth } from "../../../_utils/auth";
 import { handleCorsOptions, addCorsHeaders } from "../../../_utils/cors";
 
@@ -14,8 +14,8 @@ export async function OPTIONS(req: Request) {
  * Update a user's room assignment
  */
 export async function PUT(
-  req: Request,
-  { params }: { params: { userId: string } }
+  req: NextRequest,
+  context: { params: Promise<{ userId: string }> }
 ) {
   // Verify authentication
   const authResult = await verifyAuth(req);
@@ -25,7 +25,7 @@ export async function PUT(
   const { userId: authenticatedUserId, supabase } = authResult;
 
   try {
-    const { userId } = params;
+    const { userId } = await context.params;
     const body = await req.json();
     const { roomId } = body;
 
@@ -91,10 +91,11 @@ export async function PUT(
       user: user,
     });
     return addCorsHeaders(response, req);
-  } catch (err: any) {
-    console.error("User room update error:", err);
+  } catch (error: unknown) {
+    console.error("User room update error:", error);
+    const details = error instanceof Error ? error.message : String(error);
     const errorResponse = NextResponse.json(
-      { error: "Internal server error", details: err.message },
+      { error: "Internal server error", details },
       { status: 500 }
     );
     return addCorsHeaders(errorResponse, req);

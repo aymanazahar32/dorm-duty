@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import { addCorsHeaders } from "./cors";
 
@@ -55,7 +56,7 @@ export function getAuthenticatedSupabase(req: Request) {
 /**
  * Verifies the user is authenticated and returns their user ID
  */
-export async function verifyAuth(req: Request): Promise<{ userId: string; supabase: any } | NextResponse> {
+export async function verifyAuth(req: Request): Promise<{ userId: string; supabase: SupabaseClient } | NextResponse> {
   const auth = getAuthenticatedSupabase(req);
   
   if (!auth) {
@@ -81,3 +82,6 @@ export async function verifyAuth(req: Request): Promise<{ userId: string; supaba
 
   return { userId: user.id, supabase };
 }
+
+
+
