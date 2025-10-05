@@ -11,6 +11,7 @@ import Home from "./pages/Home";
 import Tasks from "./pages/Tasks";
 import Laundry from "./pages/Laundry";
 import Split from "./pages/Split";
+import Schedule from "./pages/Schedule";
 import Auth from "./pages/Auth";
 import Navbar from "./components/Navbar";
 import { AuthProvider, useAuth } from "./context/AuthContext";
@@ -58,6 +59,7 @@ function App() {
               <Route path="/tasks" element={<Tasks />} />
               <Route path="/laundry" element={<Laundry />} />
               <Route path="/split" element={<Split />} />
+              <Route path="/schedule" element={<Schedule />} />
             </Route>
           </Route>
 
