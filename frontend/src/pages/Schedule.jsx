@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Calendar, Clock, Users, Sparkles, Plus, AlertCircle } from 'lucide-react';
 import scheduleService from '../services/scheduleService';
 import geminiService from '../services/geminiService';
@@ -44,14 +44,7 @@ export default function Schedule() {
     }
   }, []);
 
-  // Load roommates when user is available
-  useEffect(() => {
-    if (user?.id && user?.roomId) {
-      loadRoommates();
-    }
-  }, [user?.id, user?.roomId]);
-
-  const loadRoommates = async () => {
+  const loadRoommates = useCallback(async () => {
     try {
       const { data } = await fetchLeaderboard({ 
         userId: user.id, 
@@ -62,7 +55,14 @@ export default function Schedule() {
     } catch (err) {
       console.error('Failed to load roommates:', err);
     }
-  };
+  }, [user.id, user.roomId]);
+
+  // Load roommates when user is available
+  useEffect(() => {
+    if (user?.id && user?.roomId) {
+      loadRoommates();
+    }
+  }, [user?.id, user?.roomId, loadRoommates]);
 
   const loadSchedules = () => {
     const loaded = scheduleService.getSchedules();

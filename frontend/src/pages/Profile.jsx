@@ -5,14 +5,10 @@ import {
   User, 
   Mail, 
   Home, 
-  Copy, 
-  Check, 
   LogOut, 
   Settings,
-  Shield,
   Phone,
   DollarSign,
-  CheckCircle,
   Loader2,
   Bell,
   Sun,
@@ -29,14 +25,11 @@ export default function Profile() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   
-  const [copiedUserId, setCopiedUserId] = useState(false);
-  const [copiedRoomId, setCopiedRoomId] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   
   // Form states
   const [fullName, setFullName] = useState(user?.name || "");
   const [nickname, setNickname] = useState("");
-  const [roomDorm, setRoomDorm] = useState(user?.roomId || "");
   const [statusMessage, setStatusMessage] = useState("Available for chores today");
   const [bio, setBio] = useState("Let your roommates know a bit about you.");
   const [zelleContact, setZelleContact] = useState("");
@@ -46,17 +39,6 @@ export default function Profile() {
   
   // Ref for file input
   const fileInputRef = React.useRef(null);
-
-  const copyToClipboard = (text, type) => {
-    navigator.clipboard.writeText(text);
-    if (type === "userId") {
-      setCopiedUserId(true);
-      setTimeout(() => setCopiedUserId(false), 2000);
-    } else {
-      setCopiedRoomId(true);
-      setTimeout(() => setCopiedRoomId(false), 2000);
-    }
-  };
 
   const handleLogout = async () => {
     setLoggingOut(true);

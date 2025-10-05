@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Crown, Home as HomeIcon, Calendar, ChevronDown, CheckCircle2, Clock } from "lucide-react";
+import { Crown, Home as HomeIcon, Calendar, ChevronDown, CheckCircle2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import RoommateCard from "../components/RoommateCard";
 import PieChart from "../components/PieChart";

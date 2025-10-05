@@ -3,11 +3,10 @@
 import React, { useState } from "react";
 import { 
   DollarSign, User, PlusCircle, FileText, Search, Download, 
-  Trash2, Users, Settings, X 
+  Trash2, Users, Settings
 } from "lucide-react";
 
 const Split = () => {
-  const [view, setView] = useState("expenses"); // "expenses" or "groups"
   const [expenses, setExpenses] = useState([
     { 
       id: 1, 
