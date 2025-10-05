@@ -41,7 +41,7 @@ const AuthPage = () => {
     return <Navigate to="/home" replace />;
   }
 
-  return <Auth onLogin={({ email, password }) => login(email, password)} />;
+  return <Auth onLogin={login} />;
 };
 
 function App() {
