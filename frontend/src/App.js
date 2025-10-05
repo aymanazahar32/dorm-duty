@@ -35,13 +35,13 @@ const DashboardLayout = () => (
 );
 
 const AuthPage = () => {
-  const { login, isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth();
 
   if (isAuthenticated) {
     return <Navigate to="/home" replace />;
   }
 
-  return <Auth onLogin={({ email, password }) => login(email, password)} />;
+  return <Auth />;
 };
 
 function App() {
